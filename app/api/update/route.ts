@@ -61,6 +61,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    console.log(`${missingRecords.length} new donors!`);
+
     // ===== add the rest to redis =====
     for (const record of missingRecords) {
       await client.hSet(`record:${record.index}`, "name", record.name);
