@@ -61,14 +61,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(`Found ${missingRecords.length} records not in the database`);
-    console.log(missingRecords);
-
     // ===== add the rest to redis =====
     for (const record of missingRecords) {
       await client.hSet(`record:${record.index}`, "name", record.name);
       await client.hSet(`record:${record.index}`, "amount", record.amount);
-      console.log(`Added record with ID: ${record.index}`);
     }
 
     // ===== hit the slack webhook for the new ones =====
