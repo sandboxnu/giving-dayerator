@@ -69,6 +69,9 @@ export async function GET(req: NextRequest) {
       await client.hSet(`record:${record.index}`, "amount", record.amount);
     }
 
+    // sort so multiple records at the same time appear correctly
+    missingRecords.sort((a, b) => a.index - b.index);
+
     // ===== hit the slack webhook for the new ones =====
     for (const record of missingRecords) {
       const body = {
