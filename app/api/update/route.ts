@@ -57,13 +57,18 @@ export async function GET(req: NextRequest) {
 
     const oldKeys = await client.lRange("donations", 0, -1);
 
+    console.log(newKeys);
+    console.log(oldKeys);
+
     const newDonations = findUniqueElementsInB(oldKeys, newKeys);
     const newDonationObj = combined.slice(0, newDonations.length).toReversed();
 
     // ===== add the rest to redis =====
-    for (const e of combined) {
+    for (const e of newDonationObj) {
       await client.lPush("donations", `${e.name.substring(0, 50)}-${e.amount}`);
     }
+
+    console.log(newDonationObj);
 
     // ===== hit the slack webhook for the new ones =====
     for (const record of newDonationObj) {
@@ -92,10 +97,10 @@ export async function GET(req: NextRequest) {
         ],
       };
 
-      await fetch(process.env.SLACK_WEBHOOK ?? "", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }).catch(() => console.log("failed to send slack update :("));
+      // await fetch(process.env.SLACK_WEBHOOK ?? "", {
+      //   method: "POST",
+      //   body: JSON.stringify(body),
+      // }).catch(() => console.log("failed to send slack update :("));
     }
   } finally {
     await client.disconnect();
