@@ -51,29 +51,22 @@ export async function GET(req: NextRequest) {
   await client.connect();
 
   try {
-    const missingRecords: combinedAmount[] = [];
+    const newKeys = combined.map(
+      (o) => `${o.name.substring(0, 50)}-${o.amount}`,
+    );
 
-    for (const record of combined) {
-      const exists = await client.exists(`record:${record.index}`);
+    const oldKeys = await client.lRange("donations", 0, -1);
 
-      if (!exists) {
-        missingRecords.push(record);
-      }
-    }
-
-    console.log(`${missingRecords.length} new donors!`);
+    const newDonations = findUniqueElementsInB(oldKeys, newKeys);
+    const newDonationObj = combined.slice(0, newDonations.length).toReversed();
 
     // ===== add the rest to redis =====
-    for (const record of missingRecords) {
-      await client.hSet(`record:${record.index}`, "name", record.name);
-      await client.hSet(`record:${record.index}`, "amount", record.amount);
+    for (const e of combined) {
+      await client.lPush("donations", `${e.name.substring(0, 50)}-${e.amount}`);
     }
 
-    // sort so multiple records at the same time appear correctly
-    missingRecords.sort((a, b) => a.index - b.index);
-
     // ===== hit the slack webhook for the new ones =====
-    for (const record of missingRecords) {
+    for (const record of newDonationObj) {
       const body = {
         blocks: [
           {
@@ -81,13 +74,6 @@ export async function GET(req: NextRequest) {
             text: {
               type: "plain_text",
               text: "Somebody donated!",
-            },
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "That makes " + String(record.index) + "!",
             },
           },
           {
@@ -116,4 +102,22 @@ export async function GET(req: NextRequest) {
   }
 
   return Response.json({ success: true });
+}
+
+function findUniqueElementsInB(a: string[], b: string[]) {
+  const aCopy = [...a];
+
+  const result = [];
+
+  for (let i = 0; i < b.length; i++) {
+    const matchIndex = aCopy.indexOf(b[i]);
+
+    if (matchIndex === -1) {
+      result.push(b[i]);
+    } else {
+      aCopy.splice(matchIndex, 1);
+    }
+  }
+
+  return result;
 }
