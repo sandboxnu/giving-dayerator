@@ -97,10 +97,10 @@ export async function GET(req: NextRequest) {
         ],
       };
 
-      // await fetch(process.env.SLACK_WEBHOOK ?? "", {
-      //   method: "POST",
-      //   body: JSON.stringify(body),
-      // }).catch(() => console.log("failed to send slack update :("));
+      await fetch(process.env.SLACK_WEBHOOK ?? "", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }).catch(() => console.log("failed to send slack update :("));
     }
   } finally {
     await client.disconnect();
